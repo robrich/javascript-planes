@@ -12,12 +12,12 @@ module.exports = {
     ecmaVersion: 2020
   },
   rules: {
+    'comma-dangle': ['warn', 'never'],
     'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
     'no-debugger': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
-    'comma-dangle': ['warn', 'never'],
-    quotes: ['error', 'single'],
-    semi: ['error', 'always'],
     'padded-blocks': 'off',
+    quotes: ['error', 'single', { avoidEscape: true }],
+    semi: ['error', 'always'],
     'space-before-function-paren': ['warn', {
       anonymous: 'always',
       named: 'never',

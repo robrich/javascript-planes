@@ -4,15 +4,14 @@
     <div v-if="selectedFlight">
       <div>
         <span class="data"><span class="title">callsign:</span> {{selectedFlight.callsign}}</span>
-        <span class="data"><span class="title">from:</span> {{selectedFlight.origin_country}}</span>
-        <span class="data" v-if="selectedFlight.current_country"><span class="title">now in:</span> {{selectedFlight.current_country}}</span>
+        <span class="data"><span class="title">from:</span> {{selectedFlight.originCountry}}</span>
         <span class="data" v-if="lastContact"><span class="title">last contact:</span> {{lastContact}}</span>
       </div>
       <div>
         <span class="data"><span class="title">position:</span> {{selectedFlight.latitude}}, {{selectedFlight.longitude}}</span>
-        <span class="data" v-if="!selectedFlight.on_ground"><span class="title">altitude:</span> {{selectedFlight.altitude.toLocaleString()}} m</span>
-        <span class="data" v-if="!selectedFlight.on_ground"><span class="title">velocity:</span> {{selectedFlight.velocity.toLocaleString()}} m/s</span>
-        <span class="data" v-if="selectedFlight.on_ground"><span class="title">location:</span> landed</span>
+        <span class="data" v-if="!selectedFlight.onGround"><span class="title">altitude:</span> {{selectedFlight.altitude?.toLocaleString()}} m</span>
+        <span class="data" v-if="!selectedFlight.onGround"><span class="title">velocity:</span> {{selectedFlight.velocity?.toLocaleString()}} m/s</span>
+        <span class="data" v-if="selectedFlight.onGround"><span class="title">location:</span> landed</span>
       </div>
     </div>
   </div>

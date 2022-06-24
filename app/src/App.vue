@@ -1,31 +1,31 @@
 <template>
   <div id="main">
     <div id="header">
-      <Header />
+      <SiteHeader />
       <div id="top-row">
-        <DatePicker />
         <SelectedFlight />
+        <FlightLoader />
       </div>
     </div>
-    <Map />
+    <FlightMap />
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import Header from './components/Header.vue';
-import DatePicker from './components/DatePicker.vue';
+import SiteHeader from './components/SiteHeader.vue';
 import SelectedFlight from './components/SelectedFlight.vue';
-import Map from './components/Map.vue';
+import FlightMap from './components/FlightMap.vue';
+import FlightLoader from './components/FlightLoader.vue';
 
 export default defineComponent({
   name: 'App',
 
   components: {
-    Header,
-    DatePicker,
+    SiteHeader,
     SelectedFlight,
-    Map
+    FlightMap,
+    FlightLoader
   }
 });
 </script>

@@ -2,64 +2,31 @@ version: '3'
 
 # This file uses all local resources.
 
-
 services:
 
-  singlestore:
-    image: memsql/cluster-in-a-box
+  redis:
+    image: redis:alpine
     ports:
-    - 3306:3306
-    - 8080:8080
+    - 6379:6379
     volumes:
-    - singlestore-data:/var/lib/memsql
-    - ./init.sql:/init.sql
-    environment:
-    # use the LICENSE_KEY environment variable set in the terminal:
-    - LICENSE_KEY=${LICENSE_KEY}
-    - START_AFTER_INIT=Y
-    - ROOT_PASSWORD=password_here
-    depends_on:
-    - minio
+    - ./redis-data:/data
 
-  minio:
-    image: minio/minio
-    command: server /data
-    ports:
-    - 9000:9000
-    environment:
-      MINIO_ACCESS_KEY: singlestore # min 3 characters
-      MINIO_SECRET_KEY: minio123 # min 8 characters
-    volumes:
-    - ./s3-data:/data
-
-  # loads data from OpenSky Network into S3
+  # loads data from OpenSky Network into Redis
   data-load:
     build:
       context: data-load
-    image: singlestore-planes-data-load
     environment:
-    - S3_BUCKET=flights
-    - S3_ENDPOINT=minio
-    - S3_PORT=9000
-    - S3_ACCESSKEY=singlestore
-    - S3_SECRETKEY=minio123
-    - S3_USESSL=false
+    - REDIS_URL=redis://redis:6379
     depends_on:
-    - minio
+    - redis
 
   # includes both the Express api and Vue app
   webapp:
     build:
       context: .
-    image: singlestore-planes-webapp
     ports:
     - 8000:80
     environment:
-    - SINGLESTORE_HOST=singlestore
-    - SINGLESTORE_USER=root
-    - SINGLESTORE_PASSWORD=password_here
+    - REDIS_URL=redis://redis:6379
     depends_on:
-    - singlestore
-
-volumes:
-  singlestore-data:
+    - redis

@@ -1,15 +1,17 @@
 import dotenv from 'dotenv';
-import fetch from 'node-fetch';
 import { DateTime } from 'luxon';
-import { Client, ClientOptions } from 'minio';
-import { Readable } from 'stream';
-import { Flight } from './flight';
-import { OpenSkyResponse } from './opensky';
+import fetch from 'node-fetch';
+import { createClient } from 'redis';
+import { RedisClient } from './types/redis-client';
+import { Flight } from './types/flight';
+import { OpenSkyResponse, OpenSkyRow } from './types/opensky';
 
-dotenv.config();
-const BUCKET_NAME = process.env.S3_BUCKET || 'flights'; // ASSUME: it already exists
-const S3_FOLDER = process.env.S3_FOLDER;
-const S3_CLIENT = getS3Client();
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
+const { REDIS_URL } = process.env;
+const redisUrl: string = REDIS_URL ?? 'redis://localhost:6379';
+const redisClient: RedisClient = await getRedisClient(redisUrl);
 
 
 // load every 10 seconds (api caches to 10 seconds on free accounts)
@@ -17,25 +19,23 @@ setInterval(loadData, 10000);
 loadData();
 
 
+// TODO: re-connect on every lap?
+
+
 export default async function loadData(): Promise<void> {
   try {
 
     const data = await getFlightData();
 
-    const load_date = DateTime.fromSeconds(data.time).toISO();
+    const loadDate = DateTime.fromSeconds(data.time).toISO();
 
     const flights = data.states
-      .map((d: unknown[]) => pivotData(d, load_date))
-      .filter((f: Flight) => f.callsign || f.position);
+      .map((d: OpenSkyRow) => pivotData(d, loadDate))
+      .filter((f: Flight) => f.callsign || f.latitude || f.longitude);
 
-    // 1 line per object, no array wrapper around it, no comma between objects
-    const content = flights.map((f: Flight) => JSON.stringify(f)).join('\n');
+    await saveToRedis(redisClient, flights);
 
-    const filename = `${S3_FOLDER ? S3_FOLDER+'/' : ''}${load_date}.json`.replace(/:/g,'-');
-
-    await uploadFileToS3(S3_CLIENT, BUCKET_NAME, filename, content);
-
-    console.log(`uploaded ${filename}`);
+    console.log(`${loadDate}: loaded plane data`);
 
   } catch (err) {
     console.log('error loading', {err});
@@ -47,47 +47,31 @@ export async function getFlightData(): Promise<OpenSkyResponse> {
   // docs: https://opensky-network.org/apidoc/rest.html
   const url = 'https://opensky-network.org/api/states/all';
   const res = await fetch(url, {method: 'GET'});
-  const data = await res.json();
+  const data = await res.json() as OpenSkyResponse;
 
   return data;
 }
 
-// FRAGILE: the vector array from the service is pretty messy. Sorry for the ts-ignore
-export function pivotData(f: unknown[], load_date: string): Flight {
-  // @ts-ignore
-  const [ica024, callsign, origin_country, time_position_num, last_contact_num, longitude, latitude, baro_altitude, on_ground, velocity, true_track, vertical_rate, sensors, altitude, squawk, spi, position_source] = f;
-  const last_contact = DateTime.fromSeconds(last_contact_num as number).toISO();
-  const time_position = time_position_num ? DateTime.fromSeconds(time_position_num as number).toISO() : undefined;
-  const position = latitude && longitude ? `POINT (${longitude} ${latitude})` : undefined;
-  // @ts-ignore
-  const flt: Flight = {load_date, ica024, callsign: (callsign || '').trim(), origin_country, time_position, last_contact, longitude, latitude, position, baro_altitude, on_ground, velocity, true_track, vertical_rate, sensors, altitude, squawk, spi, position_source};
+export function pivotData(f: OpenSkyRow, loadDate: string): Flight {
+  /* eslint-disable @typescript-eslint/no-unused-vars */
+  const [ica024, callsign, originCountry, timePositionNum, lastContactNum, longitude, latitude, baroAltitude, onGround, velocity, trueTrack, verticalRate, sensors, altitude, squawk, spi, positionSource] = f;
+  /* eslint-enable @typescript-eslint/no-unused-vars */
+  const lastContact = DateTime.fromSeconds(lastContactNum as number).toISO();
+  const timePosition = timePositionNum ? DateTime.fromSeconds(timePositionNum as number).toISO() : undefined;
+  const flt: Flight = {loadDate, ica024, callsign: (callsign || '').trim(), originCountry, timePosition, lastContact, longitude, latitude, baroAltitude, onGround, velocity, trueTrack, verticalRate, altitude, squawk, spi, positionSource};
   return flt;
 }
 
-export function getS3Client(): Client {
-  let endPoint = process.env.S3_ENDPOINT;
-  if (!endPoint && process.env.S3_REGION && process.env.S3_BUCKET) {
-    endPoint = `${process.env.S3_BUCKET}.s3.${process.env.S3_REGION}.amazonaws.com`;
-  }
-  if (!endPoint) {
-    endPoint = 's3.amazonaws.com'; // will probably fail
-  }
-  const config: ClientOptions = {
-    endPoint,
-    region: process.env.S3_REGION,
-    port: process.env.S3_PORT ? parseInt(process.env.S3_PORT, 10) : undefined,
-    useSSL: process.env.S3_USESSL !== 'false',
-    accessKey: process.env.S3_ACCESSKEY || '',
-    secretKey: process.env.S3_SECRETKEY || ''
-  };
-  return new Client(config);
+async function getRedisClient(url: string): Promise<RedisClient> {
+  const redisClient: RedisClient = createClient({
+    url
+  });
+  redisClient.on('error', (err: Error) => console.log('Redis Client Error', {url, err}));
+  await redisClient.connect();
+
+  return redisClient;
 }
 
-async function uploadFileToS3(minioClient: Client, bucketName: string, filename: string, data: string): Promise<string> {
-  const metadata = {
-    'Content-Type': 'application/json'
-  };
-  const jsonStream = Readable.from(data);
-  const etag = await minioClient.putObject(bucketName, filename, jsonStream, metadata);
-  return etag;
+async function saveToRedis(redisClient: RedisClient, data: Flight[]): Promise<void> {
+  await redisClient.set('planes', JSON.stringify(data));
 }

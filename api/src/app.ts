@@ -9,7 +9,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 import indexRouter from './routes/index.js';
 import flightRouter from './routes/flight.js';
-import countryRouter from './routes/country.js';
 
 const app = express();
 
@@ -21,7 +20,6 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.static(join(__dirname, '../public')));
 
 app.use('/api/flight', flightRouter);
-app.use('/api/country', countryRouter);
 app.use('/', indexRouter);
 
 // catch 404 and forward to error handler

@@ -1,12 +1,12 @@
-SingleStore Planes
-------------------
+JavaScript Planes
+-----------------
 
-This is an Express API written in TypeScript that queries the SingleStore database and exposes both country and flight data to the Vue app.
+This is an Express API written in TypeScript that queries the Redis database and exposes flight data to the Vue app.
 
 
 ## Usage
 
-1. Edit `.env` if necessary to point to your SingleStore cluster.
+1. Edit `.env` if necessary to point to your Redis database.
 
 2. Run `npm install` to install all npm packages.
 

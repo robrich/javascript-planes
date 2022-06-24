@@ -1,6 +1,6 @@
 <template>
   <h1>
-    <img src="https://msql.co/2ZSI9Aj" alt="SingleStore" /> Planes
+    JavaScript Planes
   </h1>
 </template>
 

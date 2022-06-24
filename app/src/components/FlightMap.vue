@@ -66,26 +66,13 @@ export default defineComponent({
 
   computed: {
 
-    ...mapState(['datePicked', 'selectedMarker']),
-
-    flightList(): Flight[] {
-      const date = this.$store.getters.datePicked;
-      if (!date) {
-        return [];
-      }
-      const flights: Flight[] | undefined = this.$store.getters.flightDate(date);
-      if (typeof flights === 'undefined') {
-        console.log('need flights');
-        this.$store.dispatch('flightDateLoad', date);
-      }
-      return flights ?? [];
-    }
+    ...mapState(['flights', 'selectedMarker'])
 
   },
 
   watch: {
 
-    flightList(newValue /*, oldValue */) {
+    flights(newValue /*, oldValue */) {
       this.renderMarkers(newValue);
     }
 
@@ -96,17 +83,18 @@ export default defineComponent({
     ...mapMutations({ setSelectedMarker: 'selectedMarker' }),
 
     setupLeafletMap: function () {
-      this.map = L.map('mapContainer');
-      this.map.setView(this.center, this.zoom);
+      const map: L.Map = L.map('mapContainer');
+      this.map = map;
+      map.setView(this.center, this.zoom);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Icons: <a href="https://www.vecteezy.com/free-vector/silhouette">Silhouette Vectors by Vecteezy</a>'
-      }).addTo(this.map);
+      }).addTo(map);
 
-      this.map.on('zoomend', () => {
-        this.renderMarkers(this.flightList);
+      map.on('zoomend', () => {
+        this.renderMarkers(this.flights);
       });
-      this.map.on('moveend', () => {
-        this.renderMarkers(this.flightList);
+      map.on('moveend', () => {
+        this.renderMarkers(this.flights);
       });
     },
 
@@ -122,7 +110,7 @@ export default defineComponent({
       if (!this.map) {
         return;
       }
-      const map: L.Map = this.map;
+      const map = this.map as L.Map;
 
       this.loading = true;
       console.log(`render start: ${flights.length} total planes`);
@@ -133,7 +121,8 @@ export default defineComponent({
       flights.forEach(f => this.updateMarker(f, map, bounds));
 
       // remove missing flights
-      const toRemove = this.markers.filter(m => !flights.find(f => f.ica024 === m.ica024));
+      const markers = this.markers as Marker[];
+      const toRemove = markers.filter(m => !flights.find(f => f.ica024 === m.ica024));
       toRemove.forEach(this.removeMarker);
 
       const selectedMarker: Marker | undefined = this.selectedMarker;
@@ -169,13 +158,13 @@ export default defineComponent({
         if (marker.flight !== flight) {
 
           marker.setLatLng(latlng);
-          const icon = flight.on_ground ? planeLand : planeFly;
+          const icon = flight.onGround ? planeLand : planeFly;
           marker.setIcon(icon);
-          const rotationAngle: number = flight.on_ground ? 0 : (flight.true_track ?? 0);
+          const rotationAngle: number = flight.onGround ? 0 : (flight.trueTrack ?? 0);
           marker.setRotationAngle(rotationAngle);
           marker.flight = flight;
           if (marker === this.selectedMarker) {
-            const selIcon = marker.flight.on_ground ? planeLandSel : planeFlySel;
+            const selIcon = marker.flight.onGround ? planeLandSel : planeFlySel;
             marker.setIcon(selIcon);
           }
 
@@ -184,8 +173,8 @@ export default defineComponent({
       } else {
         // create one
 
-        const icon = flight.on_ground ? planeLand : planeFly;
-        const rotationAngle: number = flight.on_ground ? 0 : (flight.true_track ?? 0);
+        const icon = flight.onGround ? planeLand : planeFly;
+        const rotationAngle: number = flight.onGround ? 0 : (flight.trueTrack ?? 0);
         const newMarker: Marker = L.marker(latlng, { icon, rotationAngle, rotationOrigin: 'center center' } as L.MarkerOptions) as Marker;
         newMarker.on('click', () => {
           this.changeSelectedMarker(newMarker);
@@ -198,23 +187,24 @@ export default defineComponent({
 
     },
 
-    removeMarker(marker: L.Marker) {
-      if (!this.map) {
+    removeMarker(marker: Marker) {
+      const map = this.map as L.Map;
+      if (!map) {
         return;
       }
       this.markers = this.markers.filter(m => m !== marker);
-      marker.removeFrom(this.map);
+      marker.removeFrom(map);
     },
 
     changeSelectedMarker(marker: Marker | undefined) {
       const oldSelectedMarker: Marker | undefined = this.selectedMarker;
       if (oldSelectedMarker) {
-        const regIcon = oldSelectedMarker.flight.on_ground ? planeLand : planeFly;
+        const regIcon = oldSelectedMarker.flight.onGround ? planeLand : planeFly;
         oldSelectedMarker.setIcon(regIcon);
       }
 
       if (marker) {
-        const selIcon = marker.flight.on_ground ? planeLandSel : planeFlySel;
+        const selIcon = marker.flight.onGround ? planeLandSel : planeFlySel;
         marker.setIcon(selIcon);
         this.setSelectedMarker(marker);
       }

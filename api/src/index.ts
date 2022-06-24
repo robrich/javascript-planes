@@ -1,27 +1,21 @@
-import dotenv from 'dotenv';
 import http from 'http';
-import { createPool, ConnectionOptions, Pool } from 'mysql2/promise';
 import app from './app.js';
+import getRedisClient from './db.js';
+import { RedisClient } from './types/redis-client.js';
 
-dotenv.config();
 
 const port = process.env.PORT || 3000;
 app.set('port', port);
 
-const dbConfig: ConnectionOptions = {
-  host: process.env.SINGLESTORE_HOST,
-  user: process.env.SINGLESTORE_USER,
-  password: process.env.SINGLESTORE_PASSWORD,
-  database: 'maps'
-};
-const db: Pool = await createPool(dbConfig);
+const db: RedisClient = await getRedisClient();
 app.locals.db = db;
 
 const server = http.createServer(app);
 
 server.listen(port, () => {
   console.log(`listening on http://+:${port}`);
-}).on('error', err => {
+}).on('error', async err => {
   console.log(`Error starting on ${port}`, {err});
+  await db.quit();
   process.exit(1);
 });
