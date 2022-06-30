@@ -16,9 +16,11 @@
     "express": "^4.18.1",
     "express-promise-router": "^4.1.1",
     "http-errors": "^2.0.0",
+    "jetpack-io": "^0.1.0-alpha.3",
     "luxon": "^2.4.0",
     "morgan": "^1.10.0",
     "nocache": "^3.0.4",
+    "node-fetch": "^3.2.6",
     "redis": "^4.1.0"
   },
   "devDependencies": {
@@ -28,6 +30,7 @@
     "@types/luxon": "^2.3.2",
     "@types/morgan": "^1.9.3",
     "@types/node": "^18.0.0",
+    "@types/node-fetch": "^2.6.2",
     "@typescript-eslint/eslint-plugin": "^5.29.0",
     "@typescript-eslint/parser": "^5.29.0",
     "eslint": "^8.18.0",

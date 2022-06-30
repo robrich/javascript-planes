@@ -1,6 +1,6 @@
 <template>
   <h1>
-    JavaScript Planes
+    Jetpack.io Planes
   </h1>
 </template>
 

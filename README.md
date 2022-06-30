@@ -1,20 +1,38 @@
 JavaScript Planes
 =================
 
-This sample app demonstrates loading data from a REST API and displaying it on a map.
+This sample app shows how easy it is to get started with Jetpack.io.
 
 ![JavaScript Planes](app-screenshot.png)
 
 
 ## Application Architecture
 
-![Application Architecture](airplane-architecture.png)
-
-This application is broken into 3 main groups:
-
-- Cron job: periodically data is queried from the [OpenSky API](https://openskynetwork.github.io/opensky-api/rest.html) and written to a Redis data store.
+- Cron job: periodically data is queried from the OpenSky API and written to a Redis data store.
 
 - User Application: an Express API queries data and surfaces it to a Single Page Application (SPA) written in Vue.
+
+
+## Run with Jetpack
+
+1. Install the [Jetpack.io CLI](https://www.jetpack.io/docs/getting-started/quickstart) and login to Jetpack.io
+
+   ```sh
+   curl https://get.jetpack.io -fsSL | bash
+   jetpack auth login
+   ```
+
+2. Run the app on the Jetpack.io demo cluster.
+
+   ```sh
+   jetpack dev
+   ```
+
+   This builds the app locally (requires a container runtime like [Docker Desktop](https://www.docker.com/products/docker-desktop)), starts the app in the cloud, and proxies requests and logs to your local machine
+
+3. Browse to the site running in the cloud and proxied to http://localhost:8080/ and watch the planes move.  Click on a plane to see the details.
+
+4. Note the logs streamed to your terminal.
 
 
 ## Run with Containers

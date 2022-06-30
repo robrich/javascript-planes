@@ -58,7 +58,7 @@ export default defineComponent({
 }
 .title {
   font-weight: bold;
-  color: #AA00FF;
+  color: #EC5B56;
 }
 .data {
   color: black;

@@ -1,29 +1,24 @@
-import dotenv from 'dotenv';
+import { cron } from 'jetpack-io';
 import { DateTime } from 'luxon';
 import fetch from 'node-fetch';
-import { createClient } from 'redis';
+import getRedisClient from './db.js';
 import { RedisClient } from './types/redis-client';
 import { Flight } from './types/flight';
 import { OpenSkyResponse, OpenSkyRow } from './types/opensky';
 
-if (process.env.NODE_ENV !== 'production') {
-  dotenv.config();
-}
-const { REDIS_URL } = process.env;
-const redisUrl: string = REDIS_URL ?? 'redis://localhost:6379';
-const redisClient: RedisClient = await getRedisClient(redisUrl);
 
-
-// load every 10 seconds (api caches to 10 seconds on free accounts)
-setInterval(loadData, 10000);
-loadData();
-
-
-// TODO: re-connect on every lap?
-
+// load every minute (OpenSky api caches to 10 seconds on free accounts)
+export const job = cron(
+  'javascript-planes',
+  '* * * * *',
+  loadData
+);
 
 export default async function loadData(): Promise<void> {
+  let db: RedisClient | undefined;
   try {
+    // reconnect to Redis every time
+    db = await getRedisClient();
 
     const data = await getFlightData();
 
@@ -33,12 +28,15 @@ export default async function loadData(): Promise<void> {
       .map((d: OpenSkyRow) => pivotData(d, loadDate))
       .filter((f: Flight) => f.callsign || f.latitude || f.longitude);
 
-    await saveToRedis(redisClient, flights);
+    await saveToRedis(db, flights);
 
     console.log(`${loadDate}: loaded plane data`);
 
   } catch (err) {
     console.log('error loading', {err});
+  }
+  if (db) {
+    await db.quit();
   }
 }
 
@@ -60,16 +58,6 @@ export function pivotData(f: OpenSkyRow, loadDate: string): Flight {
   const timePosition = timePositionNum ? DateTime.fromSeconds(timePositionNum as number).toISO() : undefined;
   const flt: Flight = {loadDate, ica024, callsign: (callsign || '').trim(), originCountry, timePosition, lastContact, longitude, latitude, baroAltitude, onGround, velocity, trueTrack, verticalRate, altitude, squawk, spi, positionSource};
   return flt;
-}
-
-async function getRedisClient(url: string): Promise<RedisClient> {
-  const redisClient: RedisClient = createClient({
-    url
-  });
-  redisClient.on('error', (err: Error) => console.log('Redis Client Error', {url, err}));
-  await redisClient.connect();
-
-  return redisClient;
 }
 
 async function saveToRedis(redisClient: RedisClient, data: Flight[]): Promise<void> {

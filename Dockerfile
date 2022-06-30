@@ -1,6 +1,6 @@
 # this includes the build for both api and app
 
-FROM node:alpine as build
+FROM --platform=amd64 node:alpine as build
 
 # cache dependencies
 # express api dependencies
@@ -36,11 +36,14 @@ RUN cp -r public ../api/public/.
 
 
 # production container
-FROM node:alpine as prod
+FROM --platform=amd64 node:alpine as prod
 
 ENV NODE_ENV=production
-ENV PORT=80
-EXPOSE 80
+ENV PORT=8080
+EXPOSE 8080
+# Rig up the cron job
+ENV JETPACK_ENTRYPOINT=/app/dist/cron.js
+ENV PATH /app/node_modules/.bin:$PATH
 
 WORKDIR /app
 

@@ -2,6 +2,16 @@ import http from 'http';
 import app from './app.js';
 import getRedisClient from './db.js';
 import { RedisClient } from './types/redis-client.js';
+import { job } from './cron.js';
+
+
+try {
+  // Run the job now so the screen won't be blank for a minute
+  await job();
+  console.log('job succeeded');
+} catch (err) {
+  console.log('job failed', {err});
+}
 
 
 const port = process.env.PORT || 3000;

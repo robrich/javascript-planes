@@ -61,7 +61,7 @@ html, body {
   display: flex;
   flex-direction: row;
   background-color: white;
-  color: #AA00FF;
+  color: #EC5B56;
 }
 @media (max-width: 970px) {
   #top-row {
